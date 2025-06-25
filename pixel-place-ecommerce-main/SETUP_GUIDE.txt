@@ -1,0 +1,22 @@
+CRITICAL SETUP STEPS TO FIX AUTHENTICATION AND ORDERS:
+
+1. RUN SQL SCRIPT IN SUPABASE:
+   - Open Supabase dashboard
+   - Go to SQL Editor
+   - Run: ../mdvdversion1-main/src/SQL Queries/E-commerce_Auth_Fixed.sql
+   
+2. TEST LOGIN:
+   - Email: test@example.com
+   - Password: password123
+   
+3. CHECK DEBUG PANEL:
+   - Bottom-right corner of website
+   - Should show "Database Connected" and list of tables
+   
+4. TEST ORDER FLOW:
+   - Login first
+   - Add items to cart  
+   - Complete checkout
+   - Check ERP Website Orders page
+
+The system is ready - just needs the SQL script run! 

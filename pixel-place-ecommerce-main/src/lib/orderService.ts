@@ -386,14 +386,7 @@ export const orderService = OrderService.getInstance();
 
 const BUSINESS_ID = '550e8400-e29b-41d4-a716-446655440000';
 
-// Generate order number
-const generateOrderNumber = (): string => {
-  const timestamp = Date.now().toString();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `ORD-${timestamp.slice(-6)}${random}`;
-};
-
-// Create order from e-commerce website
+// Create order using the new database function
 export const createOrder = async (
   userId: string,
   orderData: CreateOrderData
@@ -402,142 +395,68 @@ export const createOrder = async (
     console.log('Creating order for user:', userId);
     console.log('Order data:', orderData);
 
-    // Create or get customer from website user
-    const { data: customerId, error: customerError } = await supabase
-      .rpc('create_customer_from_website_user', { p_user_id: userId });
-
-    if (customerError) {
-      console.error('Customer creation error:', customerError);
-      throw new Error('Failed to create customer');
-    }
-
     // Calculate total amount
     const totalAmount = orderData.items.reduce((sum, item) => sum + item.total_price, 0);
 
-    // Generate order number
-    const orderNumber = generateOrderNumber();
-
-    // Get user details for order
-    const { data: userData, error: userError } = await supabase
-      .from('website_users')
-      .select('email, first_name, last_name')
-      .eq('id', userId)
-      .single();
-
-    if (userError || !userData) {
-      throw new Error('User not found');
-    }
-
-    // Create sales order
-    const { data: salesOrder, error: orderError } = await supabase
-      .from('sales_orders')
-      .insert({
-        order_number: orderNumber,
-        customer_id: customerId,
-        status: 'confirmed',
-        order_date: new Date().toISOString(),
-        total_amount: totalAmount,
-        payment_method: orderData.payment_method,
-        notes: orderData.notes,
-        business_id: BUSINESS_ID,
-        order_source: 'website',
-        shipping_address: orderData.shipping.address,
-        shipping_city: orderData.shipping.city,
-        shipping_postal_code: orderData.shipping.postal_code,
-        customer_email: userData.email,
-        customer_phone: orderData.shipping.phone,
-        delivery_instructions: orderData.shipping.delivery_instructions,
-        website_user_id: userId
-      })
-      .select()
-      .single();
-
-    if (orderError || !salesOrder) {
-      console.error('Order creation error:', orderError);
-      throw new Error('Failed to create order');
-    }
-
-    // Create order items
-    const orderItemsData = orderData.items.map(item => ({
-      sales_order_id: salesOrder.id,
+    // Prepare order items for the database function
+    const orderItems = orderData.items.map(item => ({
       product_id: item.product_id,
       quantity: item.quantity,
       unit_price: item.unit_price,
-      discount: 0,
       total_price: item.total_price
     }));
 
-    const { error: itemsError } = await supabase
-      .from('sales_order_items')
-      .insert(orderItemsData);
-
-    if (itemsError) {
-      console.error('Order items creation error:', itemsError);
-      // Try to cleanup the order
-      await supabase.from('sales_orders').delete().eq('id', salesOrder.id);
-      throw new Error('Failed to create order items');
-    }
-
-    // Update inventory - reduce stock for each item
-    for (const item of orderData.items) {
-      const { error: stockError } = await supabase
-        .from('inventory_items')
-        .update({ 
-          current_stock: supabase.raw(`current_stock - ${item.quantity}`)
-        })
-        .eq('id', item.product_id)
-        .gte('current_stock', item.quantity); // Ensure we don't go negative
-
-      if (stockError) {
-        console.error('Stock update error:', stockError);
-        // Could implement rollback logic here
-      }
-    }
-
-    // Create financial transaction for the sale
-    const { error: transactionError } = await supabase
-      .from('financial_transactions')
-      .insert({
-        type: 'income',
-        amount: totalAmount,
-        category: 'Sales Revenue',
-        description: `Website order ${orderNumber}`,
-        date: new Date().toISOString(),
-        payment_method: orderData.payment_method,
-        reference_number: orderNumber,
-        business_id: BUSINESS_ID,
-        source_order_id: salesOrder.id,
-        transaction_source: 'website'
+    // Use the database function to create the order
+    const { data: orderId, error: orderError } = await supabase
+      .rpc('create_website_order', {
+        p_user_id: userId,
+        p_total_amount: totalAmount,
+        p_payment_method: orderData.payment_method,
+        p_shipping_address: orderData.shipping.address,
+        p_shipping_city: orderData.shipping.city,
+        p_shipping_postal_code: orderData.shipping.postal_code,
+        p_delivery_instructions: orderData.shipping.delivery_instructions || '',
+        p_order_items: orderItems
       });
 
-    if (transactionError) {
-      console.error('Transaction creation error:', transactionError);
-      // Don't fail the order for transaction error, just log it
+    if (orderError || !orderId) {
+      console.error('Order creation error:', orderError);
+      throw new Error('Failed to create order: ' + (orderError?.message || 'Unknown error'));
     }
 
-    // Return the created order
-    const websiteOrder: WebsiteOrder = {
-      id: salesOrder.id,
-      order_number: salesOrder.order_number,
-      status: salesOrder.status,
-      order_date: salesOrder.order_date,
-      total_amount: salesOrder.total_amount,
-      payment_method: salesOrder.payment_method,
-      shipping_address: salesOrder.shipping_address,
-      shipping_city: salesOrder.shipping_city,
-      shipping_postal_code: salesOrder.shipping_postal_code,
-      customer_email: salesOrder.customer_email,
-      customer_phone: salesOrder.customer_phone,
-      delivery_instructions: salesOrder.delivery_instructions,
-      items: orderData.items,
-      created_at: salesOrder.created_at
+    // Fetch the created order details
+    const { data: orderDetails, error: fetchError } = await supabase
+      .from('website_orders_for_erp')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (fetchError || !orderDetails) {
+      console.error('Failed to fetch order details:', fetchError);
+      throw new Error('Order created but failed to fetch details');
+    }
+
+    console.log('Order created successfully:', orderDetails);
+    
+    return {
+      id: orderDetails.id,
+      order_number: orderDetails.order_number,
+      status: orderDetails.status,
+      total_amount: orderDetails.total_amount,
+      payment_method: orderDetails.payment_method,
+      customer_email: orderDetails.customer_email,
+      customer_phone: orderDetails.customer_phone,
+      shipping_address: orderDetails.shipping_address,
+      shipping_city: orderDetails.shipping_city,
+      shipping_postal_code: orderDetails.shipping_postal_code,
+      delivery_instructions: orderDetails.delivery_instructions,
+      order_items: orderDetails.order_items || [],
+      created_at: orderDetails.created_at,
+      updated_at: orderDetails.updated_at
     };
 
-    console.log('Order created successfully:', websiteOrder);
-    return websiteOrder;
-
   } catch (error) {
-    console.error('Create order error:', error);
+    console.error('Error creating order:', error);
     throw error;
   }
 };
@@ -546,48 +465,20 @@ export const createOrder = async (
 export const getUserOrders = async (userId: string): Promise<WebsiteOrder[]> => {
   try {
     const { data: orders, error } = await supabase
-      .from('sales_orders')
-      .select(`
-        *,
-        sales_order_items (
-          *,
-          inventory_items (name, image_url)
-        )
-      `)
+      .from('website_orders_for_erp')
+      .select('*')
       .eq('website_user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Get orders error:', error);
-      throw new Error('Failed to fetch orders');
+      console.error('Error fetching user orders:', error);
+      return [];
     }
 
-    return orders.map(order => ({
-      id: order.id,
-      order_number: order.order_number,
-      status: order.status,
-      order_date: order.order_date,
-      total_amount: order.total_amount,
-      payment_method: order.payment_method,
-      shipping_address: order.shipping_address,
-      shipping_city: order.shipping_city,
-      shipping_postal_code: order.shipping_postal_code,
-      customer_email: order.customer_email,
-      customer_phone: order.customer_phone,
-      delivery_instructions: order.delivery_instructions,
-      items: (order as any).sales_order_items.map((item: any) => ({
-        product_id: item.product_id,
-        product_name: item.inventory_items.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.total_price,
-        product_image: item.inventory_items.image_url
-      })),
-      created_at: order.created_at
-    }));
+    return orders || [];
   } catch (error) {
-    console.error('Get user orders error:', error);
-    throw error;
+    console.error('Error in getUserOrders:', error);
+    return [];
   }
 };
 
@@ -595,47 +486,20 @@ export const getUserOrders = async (userId: string): Promise<WebsiteOrder[]> => 
 export const getOrderById = async (orderId: string, userId: string): Promise<WebsiteOrder | null> => {
   try {
     const { data: order, error } = await supabase
-      .from('sales_orders')
-      .select(`
-        *,
-        sales_order_items (
-          *,
-          inventory_items (name, image_url)
-        )
-      `)
+      .from('website_orders_for_erp')
+      .select('*')
       .eq('id', orderId)
       .eq('website_user_id', userId)
       .single();
 
-    if (error || !order) {
+    if (error) {
+      console.error('Error fetching order:', error);
       return null;
     }
 
-    return {
-      id: order.id,
-      order_number: order.order_number,
-      status: order.status,
-      order_date: order.order_date,
-      total_amount: order.total_amount,
-      payment_method: order.payment_method,
-      shipping_address: order.shipping_address,
-      shipping_city: order.shipping_city,
-      shipping_postal_code: order.shipping_postal_code,
-      customer_email: order.customer_email,
-      customer_phone: order.customer_phone,
-      delivery_instructions: order.delivery_instructions,
-      items: (order as any).sales_order_items.map((item: any) => ({
-        product_id: item.product_id,
-        product_name: item.inventory_items.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.total_price,
-        product_image: item.inventory_items.image_url
-      })),
-      created_at: order.created_at
-    };
+    return order;
   } catch (error) {
-    console.error('Get order by ID error:', error);
+    console.error('Error in getOrderById:', error);
     return null;
   }
 }; 

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
 import Header from "@/components/Header";
-import DebugInfo from "@/components/DebugInfo";
 import Footer from "@/components/Footer";
 import Home from "@/pages/Home";
 import Collections from "@/pages/Collections";
@@ -17,6 +15,7 @@ import Checkout from "@/pages/Checkout";
 import Favorites from "@/pages/Favorites";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import Debug from "@/pages/Debug";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,11 +43,11 @@ const App = () => {
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/debug" element={<Debug />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
             <Footer />
-            <DebugInfo />
           </div>
         </BrowserRouter>
       </AppProvider>

@@ -5,6 +5,7 @@ import { orderSyncService, EcommerceOrderData } from './orderSyncService';
 import type { CartItem } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateOrderData, WebsiteOrder, OrderItem } from '@/types';
+import { WebsiteUser } from '@/context/AuthContext';
 
 export interface OrderCustomerInfo {
   firstName: string;
@@ -52,13 +53,13 @@ class OrderService {
   }
 
   /**
-   * Create a new order from cart items and customer info
+   * Create a new order from cart items and user data
    */
   public async createOrder(
     cartItems: CartItem[],
     customerInfo: OrderCustomerInfo,
     paymentMethod: string,
-    userId?: string
+    user?: WebsiteUser | null
   ): Promise<EcommerceOrder> {
     const orderId = this.generateOrderId();
     const orderNumber = this.generateOrderNumber();
@@ -70,10 +71,23 @@ class OrderService {
     const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
     const totalAmount = subtotal + tax + shipping;
 
+    // Use authenticated user data if available, otherwise use provided customer info
+    const finalCustomerInfo = user ? {
+      firstName: user.first_name,
+      lastName: user.last_name,
+      email: user.email,
+      phone: user.phone || customerInfo.phone,
+      address: user.address || customerInfo.address,
+      city: user.city || customerInfo.city,
+      state: user.state || customerInfo.state,
+      postalCode: user.postal_code || customerInfo.postalCode,
+      country: user.country || customerInfo.country || 'Sri Lanka'
+    } : customerInfo;
+
     const order: EcommerceOrder = {
       id: orderId,
       orderNumber,
-      customerInfo,
+      customerInfo: finalCustomerInfo,
       items: cartItems,
       subtotal,
       tax,
@@ -86,7 +100,7 @@ class OrderService {
     };
 
     // If user is authenticated, create order directly in database
-    if (userId) {
+    if (user?.id) {
       try {
         const orderData: CreateOrderData = {
           items: cartItems.map(item => ({
@@ -97,17 +111,17 @@ class OrderService {
             total_price: item.product.price * item.quantity
           })),
           shipping: {
-            address: customerInfo.address,
-            city: customerInfo.city,
-            postal_code: customerInfo.postalCode,
-            phone: customerInfo.phone,
+            address: finalCustomerInfo.address,
+            city: finalCustomerInfo.city,
+            postal_code: finalCustomerInfo.postalCode,
+            phone: finalCustomerInfo.phone,
             delivery_instructions: ''
           },
           payment_method: paymentMethod,
           notes: `E-commerce order ${orderNumber}`
         };
 
-        const dbOrder = await createOrder(userId, orderData);
+        const dbOrder = await createOrder(user.id, orderData);
         
         // Update local order with database information
         order.erpOrderId = dbOrder.id;
@@ -115,7 +129,7 @@ class OrderService {
         order.syncStatus = 'synced';
         order.status = 'processing';
 
-        console.log('Order created successfully in database:', dbOrder);
+        console.log('Order created successfully in database with authenticated user:', dbOrder);
         
       } catch (error) {
         console.error('Failed to create order in database:', error);
@@ -392,7 +406,7 @@ export const createOrder = async (
   orderData: CreateOrderData
 ): Promise<WebsiteOrder> => {
   try {
-    console.log('Creating order for user:', userId);
+    console.log('Creating order for authenticated user:', userId);
     console.log('Order data:', orderData);
 
     // Calculate total amount
@@ -436,7 +450,7 @@ export const createOrder = async (
       throw new Error('Order created but failed to fetch details');
     }
 
-    console.log('Order created successfully:', orderDetails);
+    console.log('Order created successfully with user authentication:', orderDetails);
     
     return {
       id: orderDetails.id,

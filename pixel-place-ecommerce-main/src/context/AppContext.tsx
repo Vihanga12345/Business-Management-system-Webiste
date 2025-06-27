@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem } from '@/types';
 
@@ -24,6 +23,9 @@ export const useApp = () => {
   }
   return context;
 };
+
+// Export alias for compatibility
+export const useAppContext = useApp;
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);

@@ -1,120 +1,188 @@
-
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signIn, isAuthenticated, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect if already authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user starts typing
+    if (error) setError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields.",
-        variant: "destructive",
-      });
+    setError('');
+    setIsSubmitting(true);
+
+    if (!formData.username.trim()) {
+      setError('Username is required');
+      setIsSubmitting(false);
       return;
     }
 
-    setIsLoading(true);
+    if (!formData.password) {
+      setError('Password is required');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      await login({ email, password });
-      toast({
-        title: "Login successful!",
-        description: "Welcome back!",
-      });
-      navigate('/');
+      const result = await signIn(formData.username, formData.password);
+      
+      if (!result.user) {
+        setError(result.error || 'Login failed');
+      }
+      // Success is handled by the auth context and will redirect automatically
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password. Try test@example.com / password123",
-        variant: "destructive",
-      });
+      setError('An unexpected error occurred');
+      console.error('Login error:', error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-900 py-16">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Login Form */}
-            <div className="bg-gray-800 p-8 rounded-lg">
-              <h2 className="text-2xl font-bold text-cyan-500 mb-6">LOGIN</h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="email" className="text-white">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
-                </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground text-xl">Loading...</div>
+      </div>
+    );
+  }
 
-                <div>
-                  <Label htmlFor="password" className="text-white">Password</Label>
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        <Card className="border-border bg-card">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">
+              Welcome Back
+            </CardTitle>
+            <p className="text-muted-foreground text-sm">
+              Sign in to your account to continue shopping
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="username">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Enter your username"
+                  className="bg-background border-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  Password
+                </Label>
+                <div className="relative">
                   <Input
                     id="password"
-                    type="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleChange}
                     placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white"
+                    className="bg-background border-input pr-10"
+                    required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
+              </div>
 
-                <Button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 font-bold"
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Don't have an account?{' '}
+                <Link
+                  to="/register"
+                  className="font-medium text-primary hover:underline"
                 >
-                  {isLoading ? 'Logging in...' : 'LOGIN'}
-                </Button>
-
-                <div className="text-center text-gray-400 mt-4">
-                  <p className="text-sm">
-                    Test credentials: test@example.com / password123
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            {/* New Customer */}
-            <div className="bg-gray-800 p-8 rounded-lg">
-              <h2 className="text-2xl font-bold text-cyan-500 mb-6">NEW CUSTOMER</h2>
-              
-              <h3 className="text-lg font-bold text-white mb-4">CREATE A ACCOUNT</h3>
-              
-              <p className="text-gray-300 mb-6">
-                Sign up for a free account at our store. Registration is quick and easy. 
-                It allows you to be able to order from our shop. To start shopping click register.
+                  Create account
+                </Link>
               </p>
-
-              <Link to="/register">
-                <Button className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-3 font-bold">
-                  CREATE AN ACCOUNT
-                </Button>
-              </Link>
             </div>
-          </div>
-        </div>
+
+            {/* Demo credentials info */}
+            <div className="mt-6 p-4 bg-muted rounded-lg">
+              <h3 className="font-medium mb-2">Demo Account:</h3>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div><strong>Username:</strong> testuser</div>
+                <div><strong>Password:</strong> password123</div>
+                <div className="text-xs mt-2">
+                  Use this account to test the e-commerce features.
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

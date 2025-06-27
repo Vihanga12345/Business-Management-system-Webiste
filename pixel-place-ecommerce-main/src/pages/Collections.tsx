@@ -100,7 +100,7 @@ const Collections = () => {
       <div className="min-h-screen bg-gray-900 py-12">
         <div className="container mx-auto px-6">
           <div className="text-center text-white text-xl">
-            Loading products from ERP system...
+            Loading products...
           </div>
         </div>
       </div>
@@ -110,8 +110,8 @@ const Collections = () => {
   return (
     <div className="min-h-screen bg-gray-900 py-12">
       <div className="container mx-auto px-6">
-        <h1 className="text-4xl font-bold text-white mb-12">Our Collections</h1>
-        <p className="text-cyan-500 mb-8">Live inventory from our ERP system</p>
+        <h1 className="text-4xl font-bold text-white mb-4">Our Collections</h1>
+        <p className="text-cyan-500 mb-8">Professional IT Hardware & Equipment</p>
 
         {/* Filters */}
         <div className="bg-gray-800 p-8 rounded-lg mb-12">
@@ -189,8 +189,8 @@ const Collections = () => {
         <div className="mb-8">
           <p className="text-gray-400 text-lg">
             Showing {filteredAndSortedProducts.length} of {products.length} products
-            {products.length > 0 && (
-              <span className="text-green-500 ml-2">• Live from ERP</span>
+            {selectedCategory !== 'all' && (
+              <span className="text-cyan-500 ml-2">• {selectedCategory}</span>
             )}
           </p>
         </div>

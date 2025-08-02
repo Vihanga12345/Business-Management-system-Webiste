@@ -9,9 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 
 const Login = () => {
-  const { signIn, isAuthenticated, loading } = useAuth();
+  const { login, user, isLoading } = useAuth();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +19,7 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
+  if (user) {
     return <Navigate to="/" replace />;
   }
 
@@ -38,8 +38,8 @@ const Login = () => {
     setError('');
     setIsSubmitting(true);
 
-    if (!formData.username.trim()) {
-      setError('Username is required');
+    if (!formData.email.trim()) {
+      setError('Email is required');
       setIsSubmitting(false);
       return;
     }
@@ -51,10 +51,10 @@ const Login = () => {
     }
 
     try {
-      const result = await signIn(formData.username, formData.password);
+      const success = await login(formData.email, formData.password);
       
-      if (!result.user) {
-        setError(result.error || 'Login failed');
+      if (!success) {
+        setError('Invalid email or password');
       }
       // Success is handled by the auth context and will redirect automatically
     } catch (error) {
@@ -65,7 +65,7 @@ const Login = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground text-xl">Loading...</div>
@@ -95,16 +95,16 @@ const Login = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">
-                  Username
+                <Label htmlFor="email">
+                  Email
                 </Label>
                 <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={formData.username}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                   className="bg-background border-input"
                   required
                 />
@@ -174,7 +174,7 @@ const Login = () => {
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <h3 className="font-medium mb-2">Demo Account:</h3>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div><strong>Username:</strong> testuser</div>
+                <div><strong>Email:</strong> test@example.com</div>
                 <div><strong>Password:</strong> password123</div>
                 <div className="text-xs mt-2">
                   Use this account to test the e-commerce features.

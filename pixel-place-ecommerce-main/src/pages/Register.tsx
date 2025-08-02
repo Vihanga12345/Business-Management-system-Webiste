@@ -9,19 +9,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, UserPlus, AlertCircle } from 'lucide-react';
 
 const Register = () => {
-  const { signUp, isAuthenticated, loading } = useAuth();
+  const { register: registerUser, user, isLoading } = useAuth();
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     phone: '',
     address: '',
     city: '',
-    state: '',
-    postalCode: '',
+    postal_code: '',
     country: 'Sri Lanka'
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +28,7 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
+  if (user) {
     return <Navigate to="/" replace />;
   }
 
@@ -45,18 +43,8 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    if (!formData.username.trim()) {
-      setError('Username is required');
-      return false;
-    }
-
     if (!formData.email.trim()) {
       setError('Email is required');
-      return false;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Please enter a valid email address');
       return false;
     }
 
@@ -66,7 +54,7 @@ const Register = () => {
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError('Password must be at least 6 characters');
       return false;
     }
 
@@ -75,13 +63,20 @@ const Register = () => {
       return false;
     }
 
-    if (!formData.firstName.trim()) {
+    if (!formData.first_name.trim()) {
       setError('First name is required');
       return false;
     }
 
-    if (!formData.lastName.trim()) {
+    if (!formData.last_name.trim()) {
       setError('Last name is required');
+      return false;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
       return false;
     }
 
@@ -99,21 +94,20 @@ const Register = () => {
     setIsSubmitting(true);
 
     try {
-      const userData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+      const success = await registerUser({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         phone: formData.phone,
         address: formData.address,
         city: formData.city,
-        state: formData.state,
-        postal_code: formData.postalCode,
+        postal_code: formData.postal_code,
         country: formData.country
-      };
-
-      const result = await signUp(formData.username, formData.email, formData.password, userData);
+      });
       
-      if (!result.user) {
-        setError(result.error || 'Registration failed');
+      if (!success) {
+        setError('Registration failed. Please try again.');
       }
       // Success is handled by the auth context and will redirect automatically
     } catch (error) {
@@ -124,7 +118,7 @@ const Register = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground text-xl">Loading...</div>
@@ -157,33 +151,18 @@ const Register = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Account Information</h3>
                 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username *</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      value={formData.username}
-                      onChange={handleChange}
-                      placeholder="Choose a username"
-                      className="bg-background border-input"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Enter your email"
-                      className="bg-background border-input"
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email"
+                    className="bg-background border-input"
+                    required
+                  />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -248,12 +227,12 @@ const Register = () => {
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name *</Label>
+                    <Label htmlFor="first_name">First Name *</Label>
                     <Input
-                      id="firstName"
-                      name="firstName"
+                      id="first_name"
+                      name="first_name"
                       type="text"
-                      value={formData.firstName}
+                      value={formData.first_name}
                       onChange={handleChange}
                       placeholder="Your first name"
                       className="bg-background border-input"
@@ -261,12 +240,12 @@ const Register = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Label htmlFor="last_name">Last Name *</Label>
                     <Input
-                      id="lastName"
-                      name="lastName"
+                      id="last_name"
+                      name="last_name"
                       type="text"
-                      value={formData.lastName}
+                      value={formData.last_name}
                       onChange={handleChange}
                       placeholder="Your last name"
                       className="bg-background border-input"
@@ -306,7 +285,7 @@ const Register = () => {
                   />
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
                     <Input
@@ -320,24 +299,12 @@ const Register = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">State/Province</Label>
+                    <Label htmlFor="postal_code">Postal Code</Label>
                     <Input
-                      id="state"
-                      name="state"
+                      id="postal_code"
+                      name="postal_code"
                       type="text"
-                      value={formData.state}
-                      onChange={handleChange}
-                      placeholder="State or Province"
-                      className="bg-background border-input"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postalCode">Postal Code</Label>
-                    <Input
-                      id="postalCode"
-                      name="postalCode"
-                      type="text"
-                      value={formData.postalCode}
+                      value={formData.postal_code}
                       onChange={handleChange}
                       placeholder="Postal Code"
                       className="bg-background border-input"

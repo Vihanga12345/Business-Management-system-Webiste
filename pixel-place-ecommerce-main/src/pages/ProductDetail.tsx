@@ -11,7 +11,7 @@ import AuthDialog from '@/components/AuthDialog';
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +52,8 @@ const ProductDetail = () => {
   const handleFavoriteClick = () => {
     if (!product) return;
     
-    if (!isAuthenticated) {
+    // Only require auth for favorites, not for cart operations
+    if (!user) {
       setPendingAction('favorite');
       setShowAuthDialog(true);
       return;
@@ -68,12 +69,7 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    if (!isAuthenticated) {
-      setPendingAction('cart');
-      setShowAuthDialog(true);
-      return;
-    }
-    
+    // Remove authentication check - allow anyone to add to cart
     for (let i = 0; i < quantity; i++) {
       addToCart(product);
     }
@@ -83,6 +79,7 @@ const ProductDetail = () => {
     if (!product || !pendingAction) return;
     
     if (pendingAction === 'cart') {
+      // This should not be needed anymore, but keeping for safety
       for (let i = 0; i < quantity; i++) {
         addToCart(product);
       }

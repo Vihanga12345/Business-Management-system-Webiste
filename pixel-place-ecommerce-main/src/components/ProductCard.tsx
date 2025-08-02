@@ -14,7 +14,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
   const isFavorite = favorites.some(fav => fav.id === product.id);
@@ -23,7 +23,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isAuthenticated) {
+    // Only require auth for favorites, not for cart operations
+    if (!user) {
       setPendingProduct(product);
       setShowAuthDialog(true);
       return;
@@ -45,18 +46,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       e.stopPropagation();
     }
     
-    if (!isAuthenticated) {
-      setPendingProduct(product);
-      setShowAuthDialog(true);
-      return;
-    }
-    
+    // Remove authentication check - allow anyone to add to cart
     addToCart(product);
   };
 
   const handleAuthSuccess = () => {
     if (pendingProduct) {
-      addToCart(pendingProduct);
+      // This is for favorites only now
+      addToFavorites(pendingProduct);
       setPendingProduct(null);
     }
   };

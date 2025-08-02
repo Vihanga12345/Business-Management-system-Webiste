@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, CreditCard, MapPin, User, AlertCircle, Lock } from 'lucide-react';
+import { ShoppingBag, CreditCard, MapPin, AlertCircle, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ShippingForm {
@@ -37,7 +37,7 @@ interface PaymentForm {
 const Checkout = () => {
   const navigate = useNavigate();
   const { cart, clearCart } = useAppContext();
-  const { user, userProfile, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   
   const [shippingForm, setShippingForm] = useState<ShippingForm>({
     firstName: '',
@@ -61,25 +61,23 @@ const Checkout = () => {
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showAuthRequired, setShowAuthRequired] = useState(false);
 
   // Pre-fill form with user data if authenticated
   useEffect(() => {
-    if (userProfile) {
+    if (user) {
       setShippingForm(prev => ({
         ...prev,
-        firstName: userProfile.first_name || '',
-        lastName: userProfile.last_name || '',
-        email: userProfile.email || '',
-        phone: userProfile.phone || '',
-        address: userProfile.address || '',
-        city: userProfile.city || '',
-        state: userProfile.state || '',
-        postalCode: userProfile.postal_code || '',
-        country: userProfile.country || 'Sri Lanka'
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        city: user.city || '',
+        postalCode: user.postal_code || '',
+        country: user.country || 'Sri Lanka'
       }));
     }
-  }, [userProfile]);
+  }, [user]);
 
   // Check if cart is empty
   useEffect(() => {
@@ -88,11 +86,9 @@ const Checkout = () => {
       return;
     }
 
-    // Show auth requirement if not authenticated
-    if (!isAuthenticated) {
-      setShowAuthRequired(true);
-    }
-  }, [cart.length, navigate, isAuthenticated]);
+    // Remove authentication requirement - allow guest checkout
+    // Users can checkout without being signed in
+  }, [cart.length, navigate]);
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -170,16 +166,7 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!isAuthenticated || !userProfile) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to place an order",
-        variant: "destructive",
-      });
-      navigate('/login');
-      return;
-    }
-
+    // Allow guest checkout - only require basic form validation
     if (!validateForm()) {
       return;
     }
@@ -203,12 +190,12 @@ const Checkout = () => {
         ? `Credit Card ending in ${paymentForm.cardNumber.slice(-4)}`
         : 'Cash on Delivery';
 
-      // Create order with authenticated user
+      // Create order - works for both authenticated and guest users
       const order = await orderService.createOrder(
         cart,
         customerInfo,
         paymentMethod,
-        userProfile // Pass the authenticated user profile
+        user // This can be null for guest users
       );
 
       // Clear cart
@@ -219,8 +206,8 @@ const Checkout = () => {
         description: `Your order ${order.orderNumber} has been placed and will be processed shortly.`,
       });
 
-      // Navigate to order confirmation
-      navigate(`/order-confirmation/${order.id}`);
+      // Navigate to home page after successful order
+      navigate('/');
 
     } catch (error) {
       console.error('Order placement error:', error);
@@ -234,67 +221,7 @@ const Checkout = () => {
     }
   };
 
-  // Show authentication required message
-  if (showAuthRequired) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <Card>
-              <CardHeader className="text-center">
-                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <Lock className="h-6 w-6 text-blue-600" />
-                </div>
-                <CardTitle className="text-2xl">Authentication Required</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center space-y-4">
-                <p className="text-muted-foreground">
-                  Please sign in to your account to place an order. This ensures your order is properly tracked and linked to your profile.
-                </p>
-                
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Why do I need to sign in?</strong>
-                    <br />
-                    • Track your order status and history
-                    <br />
-                    • Save your shipping information for future orders
-                    <br />
-                    • Ensure secure order processing
-                    <br />
-                    • Access customer support for your orders
-                  </AlertDescription>
-                </Alert>
-
-                <div className="flex space-x-4 justify-center pt-4">
-                  <Button onClick={() => navigate('/login')} className="flex-1 max-w-[200px]">
-                    <User className="h-4 w-4 mr-2" />
-                    Sign In
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate('/register')}
-                    className="flex-1 max-w-[200px]"
-                  >
-                    Create Account
-                  </Button>
-                </div>
-
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate('/')}
-                  className="mt-4"
-                >
-                  Continue Shopping
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Remove authentication requirement - proceed directly to checkout
 
   return (
     <div className="min-h-screen bg-background">
@@ -309,7 +236,7 @@ const Checkout = () => {
             {/* Left Column - Forms */}
             <div className="space-y-6">
               {/* User Info Display */}
-              {userProfile && (
+              {user && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -319,7 +246,7 @@ const Checkout = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      Signed in as: <strong>{userProfile.email}</strong>
+                      Signed in as: <strong>{user.email}</strong>
                     </div>
                   </CardContent>
                 </Card>
@@ -363,7 +290,7 @@ const Checkout = () => {
                       value={shippingForm.email}
                       onChange={(e) => handleShippingChange('email', e.target.value)}
                       placeholder="Email address"
-                      disabled={!!userProfile?.email}
+                      disabled={!!user?.email}
                     />
                   </div>
 
@@ -560,7 +487,7 @@ const Checkout = () => {
                   {/* Cart Items */}
                   <div className="space-y-3">
                     {cart.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 py-2">
+                      <div key={item.product.id} className="flex items-center gap-3 py-2">
                         <img
                           src={item.product.image}
                           alt={item.product.name}

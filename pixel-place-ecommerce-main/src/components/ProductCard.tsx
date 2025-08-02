@@ -59,8 +59,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <>
-      <div className="bg-gray-800 rounded-lg overflow-hidden hover:transform hover:scale-105 transition-all duration-300 group shadow-lg">
+    <div className="bg-gray-800 rounded-lg overflow-hidden hover:transform hover:scale-105 transition-all duration-300 group shadow-lg">
       {/* Product image */}
       <div className="relative overflow-hidden">
         {/* Stock badge */}

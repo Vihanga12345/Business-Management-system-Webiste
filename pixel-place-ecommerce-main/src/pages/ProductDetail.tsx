@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, ArrowLeft } from 'lucide-react';
 import { getProductById } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/types';
-import AuthDialog from '@/components/AuthDialog';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'cart' | 'favorite' | null>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -52,10 +50,9 @@ const ProductDetail = () => {
   const handleFavoriteClick = () => {
     if (!product) return;
     
-    // Only require auth for favorites, not for cart operations
+    // Require authentication for favorites - redirect to login
     if (!user) {
-      setPendingAction('favorite');
-      setShowAuthDialog(true);
+      navigate('/login');
       return;
     }
     
@@ -69,10 +66,9 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Require authentication for cart operations
+    // Require authentication for cart operations - redirect to login
     if (!user) {
-      setPendingAction('cart');
-      setShowAuthDialog(true);
+      navigate('/login');
       return;
     }
     
@@ -81,19 +77,7 @@ const ProductDetail = () => {
     }
   };
 
-  const handleAuthSuccess = () => {
-    if (!product || !pendingAction) return;
-    
-    if (pendingAction === 'cart') {
-      for (let i = 0; i < quantity; i++) {
-        addToCart(product);
-      }
-    } else if (pendingAction === 'favorite') {
-      addToFavorites(product);
-    }
-    
-    setPendingAction(null);
-  };
+
 
   const formatPrice = (price: number) => {
     return `$${price.toFixed(2)}`;
@@ -323,12 +307,6 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-
-      <AuthDialog 
-        isOpen={showAuthDialog}
-        onClose={() => setShowAuthDialog(false)}
-        onAuthSuccess={handleAuthSuccess}
-      />
     </div>
   );
 };

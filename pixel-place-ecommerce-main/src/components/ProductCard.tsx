@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import AuthDialog from '@/components/AuthDialog';
 
 interface ProductCardProps {
   product: Product;
@@ -15,18 +14,16 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
   const { user } = useAuth();
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
+  const navigate = useNavigate();
   const isFavorite = favorites.some(fav => fav.id === product.id);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Only require auth for favorites, not for cart operations
+    // Require authentication for favorites - redirect to login
     if (!user) {
-      setPendingProduct(product);
-      setShowAuthDialog(true);
+      navigate('/login');
       return;
     }
     
@@ -46,23 +43,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       e.stopPropagation();
     }
     
-    // Require authentication for cart operations
+    // Require authentication for cart operations - redirect to login
     if (!user) {
-      setPendingProduct(product);
-      setShowAuthDialog(true);
+      navigate('/login');
       return;
     }
     
     addToCart(product);
   };
 
-  const handleAuthSuccess = () => {
-    if (pendingProduct) {
-      // Handle both cart and favorites operations after successful authentication
-      addToCart(pendingProduct);
-      setPendingProduct(null);
-    }
-  };
+
 
   const formatPrice = (price: number) => {
     return `Rs ${price.toLocaleString()}.00`;
@@ -148,13 +138,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </div>
     </div>
-
-    <AuthDialog 
-      isOpen={showAuthDialog}
-      onClose={() => setShowAuthDialog(false)}
-      onAuthSuccess={handleAuthSuccess}
-    />
-    </>
   );
 };
 

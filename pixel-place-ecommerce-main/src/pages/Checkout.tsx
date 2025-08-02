@@ -169,7 +169,7 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    // Require authentication for placing orders
+    // Require authentication for order placement
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -203,12 +203,12 @@ const Checkout = () => {
         ? `Credit Card ending in ${paymentForm.cardNumber.slice(-4)}`
         : 'Cash on Delivery';
 
-      // Create order - requires authenticated user
+      // Create order - works for both authenticated and guest users
       const order = await orderService.createOrder(
         cart,
         customerInfo,
         paymentMethod,
-        user // Pass the authenticated user
+        user // This can be null for guest users
       );
 
       // Clear cart

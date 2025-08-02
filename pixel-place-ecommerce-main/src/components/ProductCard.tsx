@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -15,6 +15,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
   const isFavorite = favorites.some(fav => fav.id === product.id);
@@ -48,8 +49,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     
     // Require authentication for cart operations
     if (!user) {
-      setPendingProduct(product);
-      setShowAuthDialog(true);
+      // Redirect to login page
+      navigate('/login');
       return;
     }
     
@@ -58,8 +59,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleAuthSuccess = () => {
     if (pendingProduct) {
-      // Add to cart after successful authentication
-      addToCart(pendingProduct);
+      // This is for favorites only now
+      addToFavorites(pendingProduct);
       setPendingProduct(null);
     }
   };

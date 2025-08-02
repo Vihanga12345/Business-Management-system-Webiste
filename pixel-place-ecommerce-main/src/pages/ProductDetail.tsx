@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, ArrowLeft } from 'lucide-react';
 import { getProductById } from '@/data/products';
 import { useApp } from '@/context/AppContext';
@@ -12,6 +12,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,8 +72,8 @@ const ProductDetail = () => {
     
     // Require authentication for cart operations
     if (!user) {
-      setPendingAction('cart');
-      setShowAuthDialog(true);
+      // Redirect to login page
+      navigate('/login');
       return;
     }
     

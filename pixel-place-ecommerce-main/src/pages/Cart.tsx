@@ -11,7 +11,7 @@ const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Require authentication to view cart
+  // Require authentication for viewing cart
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -22,11 +22,6 @@ const Cart = () => {
   const formatPrice = (price: number) => {
     return `Rs ${price.toLocaleString()}.00`;
   };
-
-  // Show loading or redirect if not authenticated
-  if (!user) {
-    return null;
-  }
 
   if (cart.length === 0) {
     return (

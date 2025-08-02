@@ -1,16 +1,32 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 
 const Cart = () => {
   const { cart, updateCartQuantity, removeFromCart, getCartTotal } = useApp();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Require authentication to view cart
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+  }, [user, navigate]);
 
   const formatPrice = (price: number) => {
     return `Rs ${price.toLocaleString()}.00`;
   };
+
+  // Show loading or redirect if not authenticated
+  if (!user) {
+    return null;
+  }
 
   if (cart.length === 0) {
     return (

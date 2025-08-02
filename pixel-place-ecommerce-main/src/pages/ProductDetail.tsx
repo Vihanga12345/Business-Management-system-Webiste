@@ -69,7 +69,13 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Remove authentication check - allow anyone to add to cart
+    // Require authentication for cart operations
+    if (!user) {
+      setPendingAction('cart');
+      setShowAuthDialog(true);
+      return;
+    }
+    
     for (let i = 0; i < quantity; i++) {
       addToCart(product);
     }

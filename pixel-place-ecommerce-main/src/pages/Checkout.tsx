@@ -86,9 +86,12 @@ const Checkout = () => {
       return;
     }
 
-    // Remove authentication requirement - allow guest checkout
-    // Users can checkout without being signed in
-  }, [cart.length, navigate]);
+    // Require authentication for checkout
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+  }, [cart.length, navigate, user]);
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -166,7 +169,17 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    // Allow guest checkout - only require basic form validation
+    // Require authentication for placing orders
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to place an order",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -190,12 +203,12 @@ const Checkout = () => {
         ? `Credit Card ending in ${paymentForm.cardNumber.slice(-4)}`
         : 'Cash on Delivery';
 
-      // Create order - works for both authenticated and guest users
+      // Create order - requires authenticated user
       const order = await orderService.createOrder(
         cart,
         customerInfo,
         paymentMethod,
-        user // This can be null for guest users
+        user // Pass the authenticated user
       );
 
       // Clear cart

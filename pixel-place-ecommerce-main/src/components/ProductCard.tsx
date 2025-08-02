@@ -46,14 +46,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       e.stopPropagation();
     }
     
-    // Remove authentication check - allow anyone to add to cart
+    // Require authentication for cart operations
+    if (!user) {
+      setPendingProduct(product);
+      setShowAuthDialog(true);
+      return;
+    }
+    
     addToCart(product);
   };
 
   const handleAuthSuccess = () => {
     if (pendingProduct) {
-      // This is for favorites only now
-      addToFavorites(pendingProduct);
+      // Add to cart after successful authentication
+      addToCart(pendingProduct);
       setPendingProduct(null);
     }
   };

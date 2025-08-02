@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, CreditCard, MapPin, AlertCircle, User } from 'lucide-react';
+import { ShoppingBag, CreditCard, MapPin, AlertCircle, User, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ShippingForm {
@@ -61,6 +61,7 @@ const Checkout = () => {
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAuthRequired, setShowAuthRequired] = useState(false);
 
   // Pre-fill form with user data if authenticated
   useEffect(() => {
@@ -88,8 +89,7 @@ const Checkout = () => {
 
     // Require authentication for checkout
     if (!user) {
-      navigate('/login');
-      return;
+      setShowAuthRequired(true);
     }
   }, [cart.length, navigate, user]);
 
@@ -234,7 +234,67 @@ const Checkout = () => {
     }
   };
 
-  // Remove authentication requirement - proceed directly to checkout
+  // Show authentication required message
+  if (showAuthRequired) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Lock className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-2xl">Authentication Required</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Please sign in to your account to place an order. This ensures your order is properly tracked and linked to your profile.
+                </p>
+                
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Why do I need to sign in?</strong>
+                    <br />
+                    • Track your order status and history
+                    <br />
+                    • Save your shipping information for future orders
+                    <br />
+                    • Ensure secure order processing
+                    <br />
+                    • Access customer support for your orders
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex space-x-4 justify-center pt-4">
+                  <Button onClick={() => navigate('/login')} className="flex-1 max-w-[200px]">
+                    <User className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/register')}
+                    className="flex-1 max-w-[200px]"
+                  >
+                    Create Account
+                  </Button>
+                </div>
+
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/')}
+                  className="mt-4"
+                >
+                  Continue Shopping
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

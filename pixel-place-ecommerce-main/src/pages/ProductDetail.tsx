@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, ArrowLeft } from 'lucide-react';
 import { getProductById } from '@/data/products';
 import { useApp } from '@/context/AppContext';
@@ -12,7 +12,6 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart, addToFavorites, removeFromFavorites, favorites } = useApp();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,8 +71,8 @@ const ProductDetail = () => {
     
     // Require authentication for cart operations
     if (!user) {
-      // Redirect to login page
-      navigate('/login');
+      setPendingAction('cart');
+      setShowAuthDialog(true);
       return;
     }
     
@@ -86,7 +85,6 @@ const ProductDetail = () => {
     if (!product || !pendingAction) return;
     
     if (pendingAction === 'cart') {
-      // This should not be needed anymore, but keeping for safety
       for (let i = 0; i < quantity; i++) {
         addToCart(product);
       }
